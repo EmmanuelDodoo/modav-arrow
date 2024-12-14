@@ -1,5 +1,11 @@
 use std::fmt::Debug;
 
+/// Data types supported by the current implementation of Apache Arrow.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DataType {
+    Int32,
+}
+
 pub trait Array:
     Clone + PartialEq + Debug + IntoIterator<Item = Option<Self::DataType>, IntoIter = IntoIter<Self>>
 {
@@ -26,6 +32,9 @@ pub trait Array:
     fn is_null(&self, idx: usize) -> bool;
 
     fn len(&self) -> usize;
+
+    /// Returns the [`DataType`] of this array.
+    fn data_type(&self) -> DataType;
 
     /// Returns an iterator over the values in the array
     fn iter(&self) -> Iter<'_, Self> {

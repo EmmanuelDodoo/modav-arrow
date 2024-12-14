@@ -3,7 +3,7 @@ use std::alloc::{self, Layout};
 use std::fmt::Debug;
 use std::ptr::{self, NonNull};
 
-use crate::utils::{Array, IntoIter, Iter};
+use crate::utils::{Array, DataType, IntoIter, Iter,};
 
 pub type I32 = Option<i32>;
 
@@ -278,6 +278,10 @@ impl Array for ArrayI32 {
 
     fn len(&self) -> usize {
         self.len
+    }
+
+    fn data_type(&self) -> DataType {
+        DataType::Int32
     }
 
     fn is_null(&self, idx: usize) -> bool {
