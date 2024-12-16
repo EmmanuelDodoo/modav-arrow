@@ -5,6 +5,7 @@ use std::fmt::Debug;
 pub enum DataType {
     Int32,
     UInt32,
+    ISize,
 }
 
 pub trait Array:

@@ -6,6 +6,9 @@ use arrayi32::*;
 mod arrayu32;
 use arrayu32::*;
 
+mod arrayisize;
+use arrayisize::*;
+
 mod utils;
 use utils::*;
 
