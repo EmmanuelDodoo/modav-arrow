@@ -1,9 +1,8 @@
-#![allow(dead_code)]
 use std::alloc::{self, Layout};
 use std::fmt::Debug;
 use std::ptr::{self, NonNull};
 
-use crate::utils::{Array, DataType, IntoIter, Iter,};
+use crate::utils::{Array, DataType, IntoIter, Iter};
 
 pub type I32 = Option<i32>;
 
@@ -11,7 +10,7 @@ pub type I32 = Option<i32>;
 /// layout
 pub struct ArrayI32 {
     /// Pointer to the values buffer
-    ptr: NonNull<i32>,
+    ptr: Option<NonNull<i32>>,
     /// Pointer to the validity buffer
     val_ptr: Option<NonNull<u8>>,
     /// The number of elements in the array
@@ -32,7 +31,14 @@ impl ArrayI32 {
     {
         let len = sized.len();
 
-        assert!(len > 0, "Cannot create a 0-length array");
+        if len == 0 {
+            return Self {
+                ptr: None,
+                val_ptr: None,
+                len: 0,
+                nulls: 0,
+            };
+        }
 
         let (values_ptr, validity_ptr) = Self::allocate(len);
 
@@ -73,8 +79,12 @@ impl ArrayI32 {
             Self::dealloc_validity(Some(validity_ptr), len);
         }
 
+        if nulls == len {
+            Self::dealloc_values(Some(values_ptr), len);
+        }
+
         Self {
-            ptr: values_ptr,
+            ptr: if nulls == len { None } else { Some(values_ptr) },
             val_ptr: if nulls == 0 { None } else { Some(validity_ptr) },
             len,
             nulls,
@@ -125,6 +135,8 @@ impl ArrayI32 {
     }
 
     /// Allocates both values and validity buffers
+    ///
+    /// Must ensure len != 0
     fn allocate(len: usize) -> (NonNull<i32>, NonNull<u8>) {
         // Values
         let values_size = len * std::mem::size_of::<i32>();
@@ -162,7 +174,8 @@ impl ArrayI32 {
         unsafe { alloc::dealloc(ptr, validity_layout) };
     }
 
-    fn dealloc_values(ptr: NonNull<i32>, len: usize) {
+    fn dealloc_values(ptr: Option<NonNull<i32>>, len: usize) {
+        let Some(ptr) = ptr else { return };
         let values_size = len * std::mem::size_of::<i32>();
         let values_layout = Layout::from_size_align(values_size, 8)
             .expect("ArrayI32 drop: values size overflowed isize::max");
@@ -254,7 +267,8 @@ impl Array for ArrayI32 {
             return None;
         }
 
-        let val = unsafe { ptr::read(self.ptr.as_ptr().add(idx)) };
+        let ptr = self.ptr?;
+        let val = unsafe { ptr::read(ptr.as_ptr().add(idx)) };
 
         Some(val)
     }
@@ -268,8 +282,9 @@ impl Array for ArrayI32 {
             return None;
         }
 
+        let ptr = self.ptr?;
         let temp = unsafe {
-            let ptr = self.ptr.as_ptr().add(idx);
+            let ptr = ptr.as_ptr().add(idx);
             &*ptr
         };
 
@@ -424,5 +439,34 @@ mod test {
         iter.next();
         assert_eq!(None, iter.next().unwrap());
         assert_eq!(Some(4), iter.next().unwrap());
+    }
+
+    #[test]
+    fn test_all_nulls() {
+        let one = vec![None, None, None, None, None];
+
+        let one = ArrayI32::new(one);
+
+        assert_eq!(5, one.len());
+
+        assert!(one.is_null(0));
+
+        assert!(one.is_null(2));
+
+        assert!(one.is_null(4));
+
+        let mut iter = one.into_iter();
+
+        assert_eq!(None, iter.next().unwrap());
+        iter.next();
+        assert_eq!(None, iter.next().unwrap())
+    }
+
+    #[test]
+    fn test_empty() {
+        let one = vec![];
+        let one = ArrayI32::new(one);
+
+        assert_eq!(0, one.len());
     }
 }
