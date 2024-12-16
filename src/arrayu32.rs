@@ -4,13 +4,13 @@ use std::ptr::{self, NonNull};
 
 use crate::utils::{Array, DataType, IntoIter, Iter};
 
-pub type I32 = Option<i32>;
+pub type U32 = Option<u32>;
 
-/// Non-empty column of `i32` conforming to Apache Arrow's fix sized primitive
+/// Non-empty column of `u32` conforming to Apache Arrow's fix sized primitive
 /// layout
-pub struct ArrayI32 {
+pub struct ArrayU32 {
     /// Pointer to the values buffer
-    ptr: Option<NonNull<i32>>,
+    ptr: Option<NonNull<u32>>,
     /// Pointer to the validity buffer
     val_ptr: Option<NonNull<u8>>,
     /// The number of elements in the array
@@ -19,15 +19,10 @@ pub struct ArrayI32 {
     nulls: usize,
 }
 
-impl ArrayI32 {
-    /// Creates an [`ArrayI32`] from a vec.
-    pub fn from_vec(values: Vec<I32>) -> Self {
-        Self::from_sized_iter(values.into_iter())
-    }
-
+impl ArrayU32 {
     fn from_sized_iter<S>(sized: S) -> Self
     where
-        S: Iterator<Item = I32> + ExactSizeIterator,
+        S: Iterator<Item = U32> + ExactSizeIterator,
     {
         let len = sized.len();
 
@@ -91,6 +86,11 @@ impl ArrayI32 {
         }
     }
 
+    /// Creates an [`ArrayU32`] from a vec.
+    pub fn from_vec(values: Vec<U32>) -> Self {
+        Self::from_sized_iter(values.into_iter())
+    }
+
     /// Returns true if the validity buffers of `Self` and `Other` are equal.
     ///
     /// Assumes both buffers are equal in length.
@@ -137,15 +137,15 @@ impl ArrayI32 {
     /// Allocates both values and validity buffers
     ///
     /// Must ensure len != 0
-    fn allocate(len: usize) -> (NonNull<i32>, NonNull<u8>) {
+    fn allocate(len: usize) -> (NonNull<u32>, NonNull<u8>) {
         // Values
-        let values_size = len * std::mem::size_of::<i32>();
+        let values_size = len * std::mem::size_of::<u32>();
         let values_layout = Layout::from_size_align(values_size, 8)
-            .expect("ArrayI32: values size overflowed isize::max");
+            .expect("ArrayU32: values size overflowed isize::max");
 
         let values_ptr = unsafe { alloc::alloc(values_layout) };
 
-        let values_ptr = match NonNull::new(values_ptr as *mut i32) {
+        let values_ptr = match NonNull::new(values_ptr as *mut u32) {
             Some(ptr) => ptr,
             None => alloc::handle_alloc_error(values_layout),
         };
@@ -153,7 +153,7 @@ impl ArrayI32 {
         // Validity
         let validity_size = (len + 7) / 8;
         let validity_layout = Layout::from_size_align(validity_size, 8)
-            .expect("ArrayI32: validity size overflowed isize::max");
+            .expect("ArrayU32: validity size overflowed isize::max");
 
         let validity_ptr = unsafe { alloc::alloc(validity_layout) };
 
@@ -169,86 +169,24 @@ impl ArrayI32 {
         let Some(val_ptr) = ptr else { return };
         let validity_size = (len + 7) / 8;
         let validity_layout = Layout::from_size_align(validity_size, 8)
-            .expect("ArrayI32 drop: validity size overflowed isize::max");
+            .expect("ArrayU32 drop: validity size overflowed isize::max");
         let ptr = val_ptr.as_ptr();
         unsafe { alloc::dealloc(ptr, validity_layout) };
     }
 
-    fn dealloc_values(ptr: Option<NonNull<i32>>, len: usize) {
+    fn dealloc_values(ptr: Option<NonNull<u32>>, len: usize) {
         let Some(ptr) = ptr else { return };
-        let values_size = len * std::mem::size_of::<i32>();
+        let values_size = len * std::mem::size_of::<u32>();
         let values_layout = Layout::from_size_align(values_size, 8)
-            .expect("ArrayI32 drop: values size overflowed isize::max");
+            .expect("ArrayU32 drop: values size overflowed isize::max");
         let ptr = ptr.as_ptr() as *mut u8;
 
         unsafe { alloc::dealloc(ptr, values_layout) };
     }
 }
 
-impl Drop for ArrayI32 {
-    fn drop(&mut self) {
-        Self::dealloc_values(self.ptr, self.len());
-        Self::dealloc_validity(self.val_ptr, self.len())
-    }
-}
-
-impl Clone for ArrayI32 {
-    fn clone(&self) -> Self {
-        let iter = self.iter().map(|val| val.copied());
-        Self::from_sized_iter(iter)
-    }
-}
-
-impl Debug for ArrayI32 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut vals = self
-            .iter()
-            .map(|val| match val {
-                Some(val) => val.to_string(),
-                None => "null".into(),
-            })
-            .peekable();
-
-        let vals = {
-            let mut acc = String::new();
-            while let Some(val) = vals.next() {
-                let join = match vals.peek() {
-                    Some(_) => ", ",
-                    None => "",
-                };
-                acc = format!("{acc}{val}{join}");
-            }
-            acc
-        };
-
-        write!(f, "ArrayI32 [{vals}]")
-    }
-}
-
-impl PartialEq for ArrayI32 {
-    fn eq(&self, other: &Self) -> bool {
-        if self.len() != other.len() {
-            return false;
-        }
-
-        if self.nulls != other.nulls {
-            return false;
-        }
-
-        if !self.compare_validity(other) {
-            return false;
-        }
-
-        if !self.compare_values(other) {
-            return false;
-        }
-
-        true
-    }
-}
-
-impl Array for ArrayI32 {
-    type DataType = i32;
+impl Array for ArrayU32 {
+    type DataType = u32;
 
     fn new<I>(values: I) -> Self
     where
@@ -283,12 +221,12 @@ impl Array for ArrayI32 {
         }
 
         let ptr = self.ptr?;
-        let temp = unsafe {
+        let val = unsafe {
             let ptr = ptr.as_ptr().add(idx);
             &*ptr
         };
 
-        Some(temp)
+        Some(val)
     }
 
     fn len(&self) -> usize {
@@ -296,7 +234,7 @@ impl Array for ArrayI32 {
     }
 
     fn data_type(&self) -> DataType {
-        DataType::Int32
+        DataType::UInt32
     }
 
     fn is_null(&self, idx: usize) -> bool {
@@ -306,7 +244,6 @@ impl Array for ArrayI32 {
             idx,
             self.len
         );
-
         let Some(val_ptr) = self.val_ptr else {
             return false;
         };
@@ -314,39 +251,12 @@ impl Array for ArrayI32 {
         let byte_index = idx / 8;
 
         let val_byte = unsafe { ptr::read(val_ptr.as_ptr().add(byte_index)) };
-
         val_byte & (1 << (idx % 8)) == 0
     }
 }
 
-impl Eq for ArrayI32 {}
-
-impl From<Vec<i32>> for ArrayI32 {
-    fn from(value: Vec<i32>) -> Self {
-        Self::from_sized_iter(value.into_iter().map(Some))
-    }
-}
-
-impl From<Vec<I32>> for ArrayI32 {
-    fn from(value: Vec<I32>) -> Self {
-        Self::from_vec(value)
-    }
-}
-
-impl<const N: usize> From<&[i32; N]> for ArrayI32 {
-    fn from(value: &[i32; N]) -> Self {
-        Self::from_sized_iter(value.iter().map(|num| Some(*num)))
-    }
-}
-
-impl<const N: usize> From<&[I32; N]> for ArrayI32 {
-    fn from(value: &[I32; N]) -> Self {
-        Self::from_sized_iter(value.iter().copied())
-    }
-}
-
-impl IntoIterator for ArrayI32 {
-    type Item = Option<i32>;
+impl IntoIterator for ArrayU32 {
+    type Item = Option<u32>;
     type IntoIter = IntoIter<Self>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -354,9 +264,97 @@ impl IntoIterator for ArrayI32 {
     }
 }
 
-impl From<ArrayI32> for Vec<Option<i32>> {
-    fn from(value: ArrayI32) -> Self {
+impl Drop for ArrayU32 {
+    fn drop(&mut self) {
+        Self::dealloc_values(self.ptr, self.len());
+        Self::dealloc_validity(self.val_ptr, self.len())
+    }
+}
+
+impl Clone for ArrayU32 {
+    fn clone(&self) -> Self {
+        let iter = self.iter().map(|val| val.copied());
+        Self::from_sized_iter(iter)
+    }
+}
+
+impl Debug for ArrayU32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut vals = self
+            .iter()
+            .map(|val| match val {
+                Some(val) => val.to_string(),
+                None => "null".into(),
+            })
+            .peekable();
+
+        let vals = {
+            let mut acc = String::new();
+            while let Some(val) = vals.next() {
+                let join = match vals.peek() {
+                    Some(_) => ", ",
+                    None => "",
+                };
+                acc = format!("{acc}{val}{join}");
+            }
+            acc
+        };
+
+        write!(f, "ArrayU32 [{vals}]")
+    }
+}
+
+impl PartialEq for ArrayU32 {
+    fn eq(&self, other: &Self) -> bool {
+        if self.len() != other.len() {
+            return false;
+        }
+
+        if self.nulls != other.nulls {
+            return false;
+        }
+
+        if !self.compare_validity(other) {
+            return false;
+        }
+
+        if !self.compare_values(other) {
+            return false;
+        }
+
+        true
+    }
+}
+
+impl Eq for ArrayU32 {}
+
+impl From<ArrayU32> for Vec<Option<u32>> {
+    fn from(value: ArrayU32) -> Self {
         value.into_iter().collect()
+    }
+}
+
+impl From<Vec<u32>> for ArrayU32 {
+    fn from(value: Vec<u32>) -> Self {
+        Self::from_sized_iter(value.into_iter().map(Some))
+    }
+}
+
+impl From<Vec<U32>> for ArrayU32 {
+    fn from(value: Vec<U32>) -> Self {
+        Self::from_vec(value)
+    }
+}
+
+impl<const N: usize> From<&[u32; N]> for ArrayU32 {
+    fn from(value: &[u32; N]) -> Self {
+        Self::from_sized_iter(value.iter().copied().map(Some))
+    }
+}
+
+impl<const N: usize> From<&[U32; N]> for ArrayU32 {
+    fn from(value: &[U32; N]) -> Self {
+        Self::from_sized_iter(value.iter().copied())
     }
 }
 
@@ -370,14 +368,14 @@ mod test {
             .into_iter()
             .map(|num| if num % 2 == 0 { Some(num) } else { None });
         // Some(0), None, Some(2), None, Some(4)
-        let one = ArrayI32::new(one);
+        let one = ArrayU32::new(one);
 
         // Zero: Self equality
         assert_eq!(one, one);
 
         // One: Perfect case
         let two = vec![Some(0), None, Some(2), None, Some(4)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
 
         assert_eq!(one, two);
         // One: Symmetry
@@ -385,41 +383,41 @@ mod test {
 
         // Two: Varying order
         let two = vec![None, None, Some(0), Some(2), Some(4)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
 
         assert_ne!(one, two);
 
         // Two: Varying order
         let two = vec![None, Some(0), None, Some(2), Some(4)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
 
         assert_ne!(one, two);
 
         // Two: Varying order
         let two = vec![Some(0), Some(2), Some(4)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
         let three = vec![Some(4), Some(0), Some(2)];
-        let three = ArrayI32::new(three);
+        let three = ArrayU32::new(three);
 
         assert_ne!(three, two);
 
         // Four: Varying length
         let two = vec![Some(0), Some(2), Some(4)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
 
         assert_ne!(one, two);
 
         // Five: Varying null count
         let two = vec![None, None, None, None, Some(0)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
 
         assert_ne!(one, two);
 
         // Six: Varying element values
         let two = vec![Some(0), Some(2), Some(3)];
-        let two = ArrayI32::new(two);
+        let two = ArrayU32::new(two);
         let three = vec![Some(1), Some(2), Some(3)];
-        let three = ArrayI32::new(three);
+        let three = ArrayU32::new(three);
 
         assert_ne!(two, three);
     }
@@ -430,7 +428,7 @@ mod test {
             .into_iter()
             .map(|num| if num % 2 == 0 { Some(num) } else { None });
         // Some(0), None, Some(2), None, Some(4)
-        let one = ArrayI32::new(one);
+        let one = ArrayU32::new(one);
 
         let mut iter = one.into_iter();
 
@@ -445,7 +443,7 @@ mod test {
     fn test_all_nulls() {
         let one = vec![None, None, None, None, None];
 
-        let one = ArrayI32::new(one);
+        let one = ArrayU32::new(one);
 
         assert_eq!(5, one.len());
 
@@ -465,7 +463,7 @@ mod test {
     #[test]
     fn test_empty() {
         let one = vec![];
-        let one = ArrayI32::new(one);
+        let one = ArrayU32::new(one);
 
         assert_eq!(0, one.len());
     }

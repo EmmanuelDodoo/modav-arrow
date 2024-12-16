@@ -4,6 +4,7 @@ use std::fmt::Debug;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DataType {
     Int32,
+    UInt32,
 }
 
 pub trait Array:

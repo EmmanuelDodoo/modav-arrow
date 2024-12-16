@@ -3,6 +3,9 @@
 mod arrayi32;
 use arrayi32::*;
 
+mod arrayu32;
+use arrayu32::*;
+
 mod utils;
 use utils::*;
 
@@ -22,7 +25,7 @@ fn main() {
         None,
     ];
 
-    let array = ArrayI32::from_vec(temp);
+    let array = ArrayU32::from_vec(temp);
     dbg!(&array);
     //let iter = array.iter();
     //println!("{}", array.is_null(3));
