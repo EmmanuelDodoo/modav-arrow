@@ -6,7 +6,7 @@ use crate::utils::{Array, DataType, IntoIter, Iter};
 
 pub type U32 = Option<u32>;
 
-/// Non-empty column of `u32` conforming to Apache Arrow's fix sized primitive
+/// Column of `u32` conforming to Apache Arrow's fix sized primitive
 /// layout
 pub struct ArrayU32 {
     /// Pointer to the values buffer

@@ -6,7 +6,7 @@ use crate::utils::{Array, DataType, IntoIter, Iter};
 
 pub type ISize = Option<isize>;
 
-/// Non-empty column of `isize` conforming to Apache Arrow's fix sized primitive
+/// Column of `isize` conforming to Apache Arrow's fix sized primitive
 /// layout
 pub struct ArrayISize {
     /// Pointer to the values buffer
