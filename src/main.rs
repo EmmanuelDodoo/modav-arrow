@@ -9,6 +9,9 @@ use arrayu32::*;
 mod arrayisize;
 use arrayisize::*;
 
+mod arrayusize;
+use arrayusize::*;
+
 mod utils;
 use utils::*;
 

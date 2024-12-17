@@ -6,6 +6,7 @@ pub enum DataType {
     Int32,
     UInt32,
     ISize,
+    USize,
 }
 
 pub trait Array:
