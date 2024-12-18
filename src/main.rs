@@ -12,6 +12,9 @@ use arrayisize::*;
 mod arrayusize;
 use arrayusize::*;
 
+mod arraybool;
+use arraybool::*;
+
 mod utils;
 use utils::*;
 
@@ -20,23 +23,28 @@ fn main() {
     //    .into_iter()
     //    .map(|i| Some(i))
     //    .collect();
-    let temp = vec![
-        Some(1),
-        Some(15),
-        None,
-        None,
-        Some(5),
-        Some(25),
-        Some(1),
-        None,
-    ];
+    //let temp = vec![
+    //    Some(1),
+    //    Some(15),
+    //    None,
+    //    None,
+    //    Some(5),
+    //    Some(25),
+    //    Some(1),
+    //    None,
+    //];
 
-    let array = ArrayU32::from_vec(temp);
-    dbg!(&array);
+    //let array = ArrayU32::from_vec(temp);
+    //dbg!(&array);
     //let iter = array.iter();
     //println!("{}", array.is_null(3));
 
     //for val in iter {
     //    println!("{val:?}");
     //}
+
+    let temp = [true, true, false, true, true, true, false, false, true];
+    let array = Into::<ArrayBoolean>::into(&temp);
+
+    dbg!(array);
 }

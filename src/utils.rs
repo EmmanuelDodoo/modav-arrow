@@ -7,6 +7,7 @@ pub enum DataType {
     UInt32,
     ISize,
     USize,
+    Boolean,
 }
 
 pub trait Array:
@@ -42,6 +43,16 @@ pub trait Array:
     /// Returns an iterator over the values in the array
     fn iter(&self) -> Iter<'_, Self> {
         Iter::new(self)
+    }
+
+    /// Returns an iterator over copied array values.
+    ///
+    /// The array is not consumed in the process.
+    fn copied_iter(&self) -> CopiedIter<'_, Self>
+    where
+        Self::DataType: Copy,
+    {
+        CopiedIter::new(self)
     }
 }
 
@@ -89,6 +100,59 @@ where
 }
 
 impl<'a, T> ExactSizeIterator for Iter<'a, T>
+where
+    T: Array,
+{
+    fn len(&self) -> usize {
+        self.array.len() - self.idx
+    }
+}
+
+pub struct CopiedIter<'a, T: Array> {
+    array: &'a T,
+    idx: usize,
+}
+
+impl<'a, T> CopiedIter<'a, T>
+where
+    T: Array,
+{
+    fn new(array: &'a T) -> Self {
+        Self { array, idx: 0 }
+    }
+}
+
+impl<'a, T> Iterator for CopiedIter<'a, T>
+where
+    T: Array,
+{
+    type Item = Option<T::DataType>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let idx = self.idx;
+        self.idx += 1;
+
+        if idx >= self.array.len() {
+            None
+        } else {
+            Some(self.array.get(idx))
+        }
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.array.len() - self.idx
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.array.len() - self.idx;
+        (len, Some(len))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for CopiedIter<'a, T>
 where
     T: Array,
 {
