@@ -8,6 +8,7 @@ pub enum DataType {
     ISize,
     USize,
     Boolean,
+    F32,
 }
 
 pub trait Array:

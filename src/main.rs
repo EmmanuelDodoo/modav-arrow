@@ -1,4 +1,5 @@
 #![allow(unused_imports, dead_code)]
+use std::f32::consts;
 
 mod arrayi32;
 use arrayi32::*;
@@ -14,6 +15,9 @@ use arrayusize::*;
 
 mod arraybool;
 use arraybool::*;
+
+mod arrayf32;
+use arrayf32::*;
 
 mod utils;
 use utils::*;
@@ -43,8 +47,8 @@ fn main() {
     //    println!("{val:?}");
     //}
 
-    let temp = [true, true, false, true, true, true, false, false, true];
-    let array = Into::<ArrayBoolean>::into(&temp);
+    let temp = [3.14, -3.1, 0.01, -8.9, 42.0, consts::E, consts::PI];
+    let array = Into::<ArrayF32>::into(&temp);
 
     dbg!(array);
 }
