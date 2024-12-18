@@ -1,5 +1,5 @@
 #![allow(unused_imports, dead_code)]
-use std::f32::consts;
+use std::f64::consts;
 
 mod arrayi32;
 use arrayi32::*;
@@ -18,6 +18,9 @@ use arraybool::*;
 
 mod arrayf32;
 use arrayf32::*;
+
+mod arrayf64;
+use arrayf64::*;
 
 mod utils;
 use utils::*;
@@ -47,8 +50,8 @@ fn main() {
     //    println!("{val:?}");
     //}
 
-    let temp = [3.14, -3.1, 0.01, -8.9, 42.0, consts::E, consts::PI];
-    let array = Into::<ArrayF32>::into(&temp);
+    let temp = [3.14, -3.1, 0.01, std::f64::INFINITY, 42.0, consts::E, consts::PI];
+    let array = Into::<ArrayF64>::into(&temp);
 
     dbg!(array);
 }
