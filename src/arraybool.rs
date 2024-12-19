@@ -422,9 +422,21 @@ impl<const N: usize> From<&[bool; N]> for ArrayBoolean {
     }
 }
 
+impl<const N: usize> From<[bool; N]> for ArrayBoolean {
+    fn from(value: [bool; N]) -> Self {
+        Self::from_sized_iter(value.into_iter().map(Some))
+    }
+}
+
 impl<const N: usize> From<&[Boolean; N]> for ArrayBoolean {
     fn from(value: &[Boolean; N]) -> Self {
         Self::from_sized_iter(value.iter().copied())
+    }
+}
+
+impl<const N: usize> From<[Boolean; N]> for ArrayBoolean {
+    fn from(value: [Boolean; N]) -> Self {
+        Self::from_sized_iter(value.into_iter())
     }
 }
 

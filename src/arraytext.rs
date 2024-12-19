@@ -1,4 +1,3 @@
-#![allow(unused_imports, dead_code)]
 use std::alloc::{self, Layout};
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -8,7 +7,7 @@ use crate::utils::{Array, DataType, IntoIter, Iter};
 
 pub type Text = Option<String>;
 
-/// Column of `booleans` conforming to Apache Arrow's fix sized primitive
+/// Column of `booleans` conforming to Apache Arrow's variable sized primitive
 /// layout
 pub struct ArrayText {
     /// Pointer to the values buffer.

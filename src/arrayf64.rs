@@ -406,9 +406,21 @@ impl<const N: usize> From<&[f64; N]> for ArrayF64 {
     }
 }
 
+impl<const N: usize> From<[f64; N]> for ArrayF64 {
+    fn from(value: [f64; N]) -> Self {
+        Self::from_sized_iter(value.into_iter().map(Some))
+    }
+}
+
 impl<const N: usize> From<&[F64; N]> for ArrayF64 {
     fn from(value: &[F64; N]) -> Self {
         Self::from_sized_iter(value.iter().copied())
+    }
+}
+
+impl<const N: usize> From<[F64; N]> for ArrayF64 {
+    fn from(value: [F64; N]) -> Self {
+        Self::from_sized_iter(value.into_iter())
     }
 }
 

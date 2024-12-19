@@ -408,9 +408,21 @@ impl<const N: usize> From<&[u32; N]> for ArrayU32 {
     }
 }
 
+impl<const N: usize> From<[u32; N]> for ArrayU32 {
+    fn from(value: [u32; N]) -> Self {
+        Self::from_sized_iter(value.into_iter().map(Some))
+    }
+}
+
 impl<const N: usize> From<&[U32; N]> for ArrayU32 {
     fn from(value: &[U32; N]) -> Self {
         Self::from_sized_iter(value.iter().copied())
+    }
+}
+
+impl<const N: usize> From<[U32; N]> for ArrayU32 {
+    fn from(value: [U32; N]) -> Self {
+        Self::from_sized_iter(value.into_iter())
     }
 }
 
@@ -427,9 +439,13 @@ mod test {
         let one = ArrayU32::new(one);
         assert!(!one.is_null());
 
+        let alt = one.iter().map(|val| val.copied());
+        let alt = ArrayU32::new(alt);
+
         // Zero: Self equality
         assert_eq!(one, one);
         assert_eq!(one, one.clone());
+        assert_eq!(one, alt);
 
         // One: Perfect case
         let two = vec![Some(0), None, Some(2), None, Some(4)];

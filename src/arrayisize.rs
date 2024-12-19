@@ -408,9 +408,21 @@ impl<const N: usize> From<&[isize; N]> for ArrayISize {
     }
 }
 
+impl<const N: usize> From<[isize; N]> for ArrayISize {
+    fn from(value: [isize; N]) -> Self {
+        Self::from_sized_iter(value.into_iter().map(Some))
+    }
+}
+
 impl<const N: usize> From<&[ISize; N]> for ArrayISize {
     fn from(value: &[ISize; N]) -> Self {
         Self::from_sized_iter(value.iter().copied())
+    }
+}
+
+impl<const N: usize> From<[ISize; N]> for ArrayISize {
+    fn from(value: [ISize; N]) -> Self {
+        Self::from_sized_iter(value.into_iter())
     }
 }
 
