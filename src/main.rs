@@ -1,5 +1,7 @@
 #![allow(unused_imports, dead_code)]
+use std::alloc::{self, Layout};
 use std::f64::consts;
+use std::ptr::{self, NonNull};
 
 mod arrayi32;
 use arrayi32::*;
@@ -22,36 +24,22 @@ use arrayf32::*;
 mod arrayf64;
 use arrayf64::*;
 
+mod arraytext;
+use arraytext::*;
+
 mod utils;
 use utils::*;
 
 fn main() {
-    //let temp = vec![1, 2, 3, 4, 5,]
-    //    .into_iter()
-    //    .map(|i| Some(i))
-    //    .collect();
-    //let temp = vec![
-    //    Some(1),
-    //    Some(15),
-    //    None,
-    //    None,
-    //    Some(5),
-    //    Some(25),
-    //    Some(1),
-    //    None,
-    //];
+    let elems = [
+        String::from("It turns"),
+        String::from("All"),
+        String::from("Your good"),
+        String::from("Feelings into bad feelings."),
+        String::from("Its a"),
+        String::from("Nightmare💀!"),
+    ];
 
-    //let array = ArrayU32::from_vec(temp);
-    //dbg!(&array);
-    //let iter = array.iter();
-    //println!("{}", array.is_null(3));
-
-    //for val in iter {
-    //    println!("{val:?}");
-    //}
-
-    let temp = [3.14, -3.1, 0.01, std::f64::INFINITY, 42.0, consts::E, consts::PI];
-    let array = Into::<ArrayF64>::into(&temp);
-
+    let array = Into::<ArrayText>::into(elems);
     dbg!(array);
 }
