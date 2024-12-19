@@ -194,8 +194,46 @@ impl Drop for ArrayI32 {
 
 impl Clone for ArrayI32 {
     fn clone(&self) -> Self {
-        let iter = self.iter().map(|val| val.copied());
-        Self::from_sized_iter(iter)
+        if self.len() == 0 {
+            return Self {
+                ptr: None,
+                val_ptr: None,
+                len: 0,
+                nulls: 0,
+            };
+        }
+
+        let (values_ptr, validity_ptr) = Self::allocate(self.len());
+
+        let validity_ptr = match self.val_ptr {
+            Some(ptr) => {
+                let count = (self.len() + 7) / 8;
+                unsafe { ptr::copy(ptr.as_ptr(), validity_ptr.as_ptr(), count) };
+                Some(validity_ptr)
+            }
+            None => {
+                Self::dealloc_validity(Some(validity_ptr), self.len());
+                None
+            }
+        };
+
+        let values_ptr = match self.ptr {
+            Some(ptr) => {
+                unsafe { ptr::copy(ptr.as_ptr(), values_ptr.as_ptr(), self.len()) };
+                Some(values_ptr)
+            }
+            None => {
+                Self::dealloc_values(Some(values_ptr), self.len());
+                None
+            }
+        };
+
+        Self {
+            ptr: values_ptr,
+            val_ptr: validity_ptr,
+            len: self.len(),
+            nulls: self.nulls,
+        }
     }
 }
 
@@ -374,6 +412,7 @@ mod test {
 
         // Zero: Self equality
         assert_eq!(one, one);
+        assert_eq!(one, one.clone());
 
         // One: Perfect case
         let two = vec![Some(0), None, Some(2), None, Some(4)];
