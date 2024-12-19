@@ -10,12 +10,16 @@ pub enum DataType {
     Boolean,
     F32,
     F64,
+    Text,
 }
 
 pub trait Array:
     Clone + PartialEq + Debug + IntoIterator<Item = Option<Self::DataType>, IntoIter = IntoIter<Self>>
 {
+    /// The data type used by the array.
     type DataType;
+    /// The reference type returned by the array.
+    type Ref: ?Sized;
 
     fn new<I>(values: I) -> Self
     where
@@ -30,12 +34,20 @@ pub trait Array:
     /// Returns a shared reference to the value at `idx` if any.
     ///
     /// Returns None if `idx` is out of range
-    fn get_ref(&self, idx: usize) -> Option<&Self::DataType>;
+    fn get_ref(&self, idx: usize) -> Option<&Self::Ref>;
 
     /// Returns true if the value contained at `idx` is null
     ///
     /// May panic if `idx` is out of bounds
-    fn is_null(&self, idx: usize) -> bool;
+    fn check_null(&self, idx: usize) -> bool;
+
+    /// Returns true if the array contains only `null` elements
+    fn is_null(&self) -> bool;
+
+    /// Returns true if the array is completely empty.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     fn len(&self) -> usize;
 
@@ -76,7 +88,7 @@ impl<'a, T> Iterator for Iter<'a, T>
 where
     T: Array,
 {
-    type Item = Option<&'a T::DataType>;
+    type Item = Option<&'a T::Ref>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;

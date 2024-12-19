@@ -96,6 +96,14 @@ impl ArrayBoolean {
 
         if nulls == len {
             Self::dealloc_values(Some(values_ptr), len);
+            Self::dealloc_validity(Some(validity_ptr), len);
+
+            return Self {
+                ptr: None,
+                val_ptr: None,
+                len,
+                nulls: len,
+            };
         }
 
         Self {
@@ -210,6 +218,7 @@ impl ArrayBoolean {
 
 impl Array for ArrayBoolean {
     type DataType = bool;
+    type Ref = bool;
 
     fn new<I>(values: I) -> Self
     where
@@ -224,7 +233,7 @@ impl Array for ArrayBoolean {
             return None;
         }
 
-        if self.is_null(idx) {
+        if self.check_null(idx) {
             return None;
         }
 
@@ -238,7 +247,7 @@ impl Array for ArrayBoolean {
     }
 
     /// Always returns a [`None`]. Use [`Array::get`] instead.
-    fn get_ref(&self, _idx: usize) -> Option<&Self::DataType> {
+    fn get_ref(&self, _idx: usize) -> Option<&Self::Ref> {
         None
     }
 
@@ -250,13 +259,17 @@ impl Array for ArrayBoolean {
         DataType::Boolean
     }
 
-    fn is_null(&self, idx: usize) -> bool {
+    fn check_null(&self, idx: usize) -> bool {
         assert!(
             idx < self.len,
             "Tried to index {} when array length is {}",
             idx,
             self.len
         );
+
+        if self.is_null() {
+            return true;
+        }
 
         let Some(val_ptr) = self.val_ptr else {
             return false;
@@ -266,6 +279,10 @@ impl Array for ArrayBoolean {
 
         let val_byte = unsafe { ptr::read(val_ptr.as_ptr().add(byte_index)) };
         val_byte & (1 << (idx % 8)) == 0
+    }
+
+    fn is_null(&self) -> bool {
+        self.nulls == self.len
     }
 }
 
@@ -419,6 +436,7 @@ mod test {
     fn test_partial_eq() {
         let one = [Some(true), None, Some(false), None, Some(false)];
         let one = ArrayBoolean::new(one);
+        assert!(!one.is_null());
 
         // Zero: Self equality
         assert_eq!(one, one);
@@ -503,13 +521,15 @@ mod test {
 
         let one = ArrayBoolean::new(one);
 
+        assert!(one.is_null());
+
         assert_eq!(5, one.len());
 
-        assert!(one.is_null(0));
+        assert!(one.check_null(0));
 
-        assert!(one.is_null(2));
+        assert!(one.check_null(2));
 
-        assert!(one.is_null(4));
+        assert!(one.check_null(4));
 
         let mut iter = one.into_iter();
 

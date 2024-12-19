@@ -81,6 +81,14 @@ impl ArrayI32 {
 
         if nulls == len {
             Self::dealloc_values(Some(values_ptr), len);
+            Self::dealloc_validity(Some(validity_ptr), len);
+
+            return Self {
+                ptr: None,
+                val_ptr: None,
+                len,
+                nulls,
+            };
         }
 
         Self {
@@ -287,6 +295,7 @@ impl PartialEq for ArrayI32 {
 
 impl Array for ArrayI32 {
     type DataType = i32;
+    type Ref = i32;
 
     fn new<I>(values: I) -> Self
     where
@@ -301,7 +310,7 @@ impl Array for ArrayI32 {
             return None;
         }
 
-        if self.is_null(idx) {
+        if self.check_null(idx) {
             return None;
         }
 
@@ -311,12 +320,12 @@ impl Array for ArrayI32 {
         Some(val)
     }
 
-    fn get_ref(&self, idx: usize) -> Option<&Self::DataType> {
+    fn get_ref(&self, idx: usize) -> Option<&Self::Ref> {
         if idx >= self.len {
             return None;
         }
 
-        if self.is_null(idx) {
+        if self.check_null(idx) {
             return None;
         }
 
@@ -337,13 +346,17 @@ impl Array for ArrayI32 {
         DataType::Int32
     }
 
-    fn is_null(&self, idx: usize) -> bool {
+    fn check_null(&self, idx: usize) -> bool {
         assert!(
             idx < self.len,
             "Tried to index {} when array length is {}",
             idx,
             self.len
         );
+
+        if self.is_null() {
+            return true;
+        }
 
         let Some(val_ptr) = self.val_ptr else {
             return false;
@@ -354,6 +367,10 @@ impl Array for ArrayI32 {
         let val_byte = unsafe { ptr::read(val_ptr.as_ptr().add(byte_index)) };
 
         val_byte & (1 << (idx % 8)) == 0
+    }
+
+    fn is_null(&self) -> bool {
+        self.nulls == self.len
     }
 }
 
@@ -409,6 +426,7 @@ mod test {
             .map(|num| if num % 2 == 0 { Some(num) } else { None });
         // Some(0), None, Some(2), None, Some(4)
         let one = ArrayI32::new(one);
+        assert!(!one.is_null());
 
         // Zero: Self equality
         assert_eq!(one, one);
@@ -485,14 +503,15 @@ mod test {
         let one = vec![None, None, None, None, None];
 
         let one = ArrayI32::new(one);
+        assert!(one.is_null());
 
         assert_eq!(5, one.len());
 
-        assert!(one.is_null(0));
+        assert!(one.check_null(0));
 
-        assert!(one.is_null(2));
+        assert!(one.check_null(2));
 
-        assert!(one.is_null(4));
+        assert!(one.check_null(4));
 
         let mut iter = one.into_iter();
 
