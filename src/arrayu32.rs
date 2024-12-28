@@ -194,18 +194,18 @@ impl ArrayU32 {
 }
 
 impl Array for ArrayU32 {
-    type DataType = u32;
-    type Ref = u32;
+    type Data = u32;
+    type Ref<'a> = u32;
 
     fn new<I>(values: I) -> Self
     where
-        I: IntoIterator<Item = Option<Self::DataType>>,
+        I: IntoIterator<Item = Option<Self::Data>>,
         I::IntoIter: ExactSizeIterator,
     {
         Self::from_sized_iter(values.into_iter())
     }
 
-    fn get(&self, idx: usize) -> Option<Self::DataType> {
+    fn get(&self, idx: usize) -> Option<Self::Data> {
         if idx >= self.len {
             return None;
         }
@@ -220,22 +220,8 @@ impl Array for ArrayU32 {
         Some(val)
     }
 
-    fn get_ref(&self, idx: usize) -> Option<&Self::Ref> {
-        if idx >= self.len {
-            return None;
-        }
-
-        if self.check_null(idx) {
-            return None;
-        }
-
-        let ptr = self.ptr?;
-        let val = unsafe {
-            let ptr = ptr.as_ptr().add(idx);
-            &*ptr
-        };
-
-        Some(val)
+    fn get_ref(&self, idx: usize) -> Option<Self::Ref<'_>> {
+        self.get(idx)
     }
 
     fn len(&self) -> usize {
@@ -254,7 +240,7 @@ impl Array for ArrayU32 {
             self.len
         );
 
-        if self.is_null() {
+        if self.all_null() {
             return true;
         }
 
@@ -268,7 +254,7 @@ impl Array for ArrayU32 {
         val_byte & (1 << (idx % 8)) == 0
     }
 
-    fn is_null(&self) -> bool {
+    fn all_null(&self) -> bool {
         self.nulls == self.len
     }
 }
@@ -437,9 +423,9 @@ mod test {
             .map(|num| if num % 2 == 0 { Some(num) } else { None });
         // Some(0), None, Some(2), None, Some(4)
         let one = ArrayU32::new(one);
-        assert!(!one.is_null());
+        assert!(!one.all_null());
 
-        let alt = one.iter().map(|val| val.copied());
+        let alt = one.iter().map(|val| val);
         let alt = ArrayU32::new(alt);
 
         // Zero: Self equality
@@ -519,7 +505,7 @@ mod test {
 
         let one = ArrayU32::new(one);
 
-        assert!(one.is_null());
+        assert!(one.all_null());
 
         assert_eq!(5, one.len());
 

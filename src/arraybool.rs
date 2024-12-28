@@ -217,18 +217,18 @@ impl ArrayBoolean {
 }
 
 impl Array for ArrayBoolean {
-    type DataType = bool;
-    type Ref = bool;
+    type Data = bool;
+    type Ref<'a> = bool;
 
     fn new<I>(values: I) -> Self
     where
-        I: IntoIterator<Item = Option<Self::DataType>>,
+        I: IntoIterator<Item = Option<Self::Data>>,
         I::IntoIter: ExactSizeIterator,
     {
         Self::from_sized_iter(values.into_iter())
     }
 
-    fn get(&self, idx: usize) -> Option<Self::DataType> {
+    fn get(&self, idx: usize) -> Option<Self::Data> {
         if idx >= self.len {
             return None;
         }
@@ -246,9 +246,8 @@ impl Array for ArrayBoolean {
         Some(val == 1)
     }
 
-    /// Always returns a [`None`]. Use [`Array::get`] instead.
-    fn get_ref(&self, _idx: usize) -> Option<&Self::Ref> {
-        None
+    fn get_ref(&self, idx: usize) -> Option<Self::Ref<'_>> {
+        self.get(idx)
     }
 
     fn len(&self) -> usize {
@@ -267,7 +266,7 @@ impl Array for ArrayBoolean {
             self.len
         );
 
-        if self.is_null() {
+        if self.all_null() {
             return true;
         }
 
@@ -281,7 +280,7 @@ impl Array for ArrayBoolean {
         val_byte & (1 << (idx % 8)) == 0
     }
 
-    fn is_null(&self) -> bool {
+    fn all_null(&self) -> bool {
         self.nulls == self.len
     }
 }
@@ -448,7 +447,7 @@ mod test {
     fn test_partial_eq() {
         let one = [Some(true), None, Some(false), None, Some(false)];
         let one = ArrayBoolean::new(one);
-        assert!(!one.is_null());
+        assert!(!one.all_null());
 
         // Zero: Self equality
         assert_eq!(one, one);
@@ -533,7 +532,7 @@ mod test {
 
         let one = ArrayBoolean::new(one);
 
-        assert!(one.is_null());
+        assert!(one.all_null());
 
         assert_eq!(5, one.len());
 

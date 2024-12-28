@@ -14,27 +14,29 @@ pub enum DataType {
 }
 
 pub trait Array:
-    Clone + PartialEq + Debug + IntoIterator<Item = Option<Self::DataType>, IntoIter = IntoIter<Self>>
+    Clone + PartialEq + Debug + IntoIterator<Item = Option<Self::Data>, IntoIter = IntoIter<Self>>
 {
     /// The data type used by the array.
-    type DataType;
+    type Data;
     /// The reference type returned by the array.
-    type Ref: ?Sized;
+    type Ref<'a>
+    where
+        Self: 'a;
 
     fn new<I>(values: I) -> Self
     where
-        I: IntoIterator<Item = Option<Self::DataType>>,
+        I: IntoIterator<Item = Option<Self::Data>>,
         I::IntoIter: ExactSizeIterator;
 
-    /// Returns the value at `idx` if any.
+    /// Returns an owned value at `idx` if any.
     ///
     /// Returns None if `idx` is out of range
-    fn get(&self, idx: usize) -> Option<Self::DataType>;
+    fn get(&self, idx: usize) -> Option<Self::Data>;
 
     /// Returns a shared reference to the value at `idx` if any.
     ///
     /// Returns None if `idx` is out of range
-    fn get_ref(&self, idx: usize) -> Option<&Self::Ref>;
+    fn get_ref(&self, idx: usize) -> Option<Self::Ref<'_>>;
 
     /// Returns true if the value contained at `idx` is null
     ///
@@ -42,7 +44,7 @@ pub trait Array:
     fn check_null(&self, idx: usize) -> bool;
 
     /// Returns true if the array contains only `null` elements
-    fn is_null(&self) -> bool;
+    fn all_null(&self) -> bool;
 
     /// Returns true if the array is completely empty.
     fn is_empty(&self) -> bool {
@@ -64,7 +66,7 @@ pub trait Array:
     /// The array is not consumed in the process.
     fn copied_iter(&self) -> CopiedIter<'_, Self>
     where
-        Self::DataType: Copy,
+        Self::Data: Copy,
     {
         CopiedIter::new(self)
     }
@@ -88,7 +90,7 @@ impl<'a, T> Iterator for Iter<'a, T>
 where
     T: Array,
 {
-    type Item = Option<&'a T::Ref>;
+    type Item = Option<T::Ref<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
@@ -140,7 +142,7 @@ impl<'a, T> Iterator for CopiedIter<'a, T>
 where
     T: Array,
 {
-    type Item = Option<T::DataType>;
+    type Item = Option<T::Data>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
@@ -193,7 +195,7 @@ impl<T> Iterator for IntoIter<T>
 where
     T: Array,
 {
-    type Item = Option<T::DataType>;
+    type Item = Option<T::Data>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.idx;
