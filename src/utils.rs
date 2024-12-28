@@ -11,6 +11,7 @@ pub enum DataType {
     F32,
     F64,
     Text,
+    Union,
 }
 
 pub trait Array:
